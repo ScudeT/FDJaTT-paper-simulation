@@ -1,11 +1,10 @@
 classdef Robot
-
-    % the model of a robot that can move randomly in 2d space
-    % it saves its current position and the full path it has been through
-
+% the model of a robot that can move randomly in 2d space
+% it saves its current position and the full path it has been through
+% the dynamics rule the odometry of the rob
     properties
-        true_Pose;  % [x;y;th]
-        true_Path;  % list of poses
+        true_Pose;
+        true_Path;
     end
 
     methods
@@ -15,7 +14,6 @@ classdef Robot
         end
 
         function obj = dynamics(obj,dt,v,w)
-            % the dynamics rule the movement of the robot 
             phi = obj.true_Pose(3);
 
             vel = [ v*cos(phi);
@@ -27,9 +25,6 @@ classdef Robot
         end
 
         function obj = update(obj,dt)
-            % gives some random velocities everytime making the robot move 
-            % randomly in 2D space
-
             v = 0.5; % m/s
             w = -pi/4 + pi*2/4*rand; % random var in [-pi/4, pi/4]
             
@@ -37,10 +32,6 @@ classdef Robot
         end
 
         function triangle = draw(obj,i)
-            % a draw funciton has been added to allow to draw a triangle 
-            % in the position and direction from a moment in time from 
-            % the path
-
             x = obj.true_Path(i,1);
             y = obj.true_Path(i,2);
             th = obj.true_Path(i,3);

@@ -1,0 +1,59 @@
+classdef Robot_w_communication < Robot_w_sensors
+    % giving the ability to the robots to communicate their data to
+    % eachother
+
+    properties
+        data_abs
+        data_rel
+        link_max_dist
+        link_failure_prob
+    end
+
+    methods
+        function obj = Robot_w_communication(x0,name,sensors_var, sensors_range, connection_data)
+            % connection_data = [connection_max_dist, connection prob]
+
+            obj@Robot_w_sensors(x0,name,sensors_var, sensors_range)
+
+            obj.data_abs = table();
+            obj.data_rel = table();
+
+            obj.link_max_dist = connection_data(1);
+            obj.link_failure_prob = connection_data(2);
+        end
+
+        function obj = get_data(obj,robot,time_stamp)  
+            if rand > obj.link_failure_prob
+                abs_data = table({robot.name}, robot.z_abs', time_stamp, 'VariableNames', {'Name', 'Measure','Time'});
+
+                myRow = ismember(robot.z_r.Name, obj.name);
+                my_meas = robot.z_r(myRow, 'Measure');
+
+                rel_data = table({robot.name}, my_meas, time_stamp, 'VariableNames', {'Name', 'Measure','Time'});
+                
+                obj.data_abs = [obj.data_abs; abs_data];
+                obj.data_rel = [obj.data_rel; rel_data];
+
+            end
+        end
+
+        function obj = update_communications(obj,robot_set, time_stamp)
+            obj.data_abs = table();
+            obj.data_rel = table();
+            
+            for j=1:length(robot_set)
+                
+                robot_distance = obj.z_r
+
+                if robot_set(j).name == obj.name 
+                    % don't add measurement against your own
+                elseif measure(1) < obj.z_r_max 
+                    % if the robot is reachable then add the measurement 
+                    % to be changed to follow the one hop rule
+                    obj = obj.get_data(robot_set(j),time_stamp);
+                end
+      
+            end
+        end
+    end
+end
