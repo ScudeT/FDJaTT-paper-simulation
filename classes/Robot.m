@@ -6,12 +6,16 @@ classdef Robot
     properties
         true_Pose;  % [x;y;th]
         true_Path;  % list of poses
+        u;
+        dt;
     end
 
     methods
         function obj = Robot(x0)
             obj.true_Pose = double(x0);
             obj.true_Path = obj.true_Pose';
+            obj.u = [0;0];
+            obj.dt = 0;
         end
 
         function obj = dynamics(obj,dt,v,w)
@@ -21,7 +25,7 @@ classdef Robot
             vel = [ v*cos(phi);
                     v*sin(phi);
                     w           ]; 
-            
+            obj.dt = dt;
             obj.true_Pose = obj.true_Pose + vel*dt;
             obj.true_Path = [obj.true_Path; obj.true_Pose'];
         end
@@ -32,7 +36,7 @@ classdef Robot
 
             v = 0.5; % m/s
             w = -pi/4 + pi*2/4*rand; % random var in [-pi/4, pi/4]
-            
+            obj.u = [v;w];
             obj = obj.dynamics(dt,v,w);
         end
 
