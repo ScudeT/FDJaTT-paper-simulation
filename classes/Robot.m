@@ -60,5 +60,6 @@ classdef Robot
 
             triangle = [translatedVerticesX; translatedVerticesY];
         end
+    
     end
 end

@@ -88,6 +88,7 @@ classdef Robot_w_sens_and_comm < Robot_w_sensors
 
             obj = obj.update_abs_com(robot_set,time_stamp);
             obj = obj.update_rel_com(robot_set,time_stamp);
+            
         end
     end
 end

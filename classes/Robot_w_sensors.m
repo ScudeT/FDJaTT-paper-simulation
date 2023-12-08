@@ -62,7 +62,7 @@ classdef Robot_w_sensors < Robot
             dist = sqrt((robot.true_Pose(1)-obj.true_Pose(1))^2+(robot.true_Pose(2)-obj.true_Pose(2))^2) + obj.v_r*randn;
             angle = atan2(robot.true_Pose(2)-obj.true_Pose(2),robot.true_Pose(1)-obj.true_Pose(1)) - obj.true_Pose(3) + obj.v_r*randn;
             
-            measure = [dist;angle];
+            measure = [dist; mod(angle, 2*pi)];
         end
 
         function obj = update_rel_meas(obj, robot_set, time_stamp)

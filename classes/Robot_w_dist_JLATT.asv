@@ -142,7 +142,7 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
 
             %% Calculate corrections
             for l = 1:height(obj.data_rel)
-                %% given robot_l's data
+                %% get data 
                 data_row = obj.data_rel(l,:);
                 sender_name = data_row.Name;
                 sender_zr_row = ismember(obj.z_r.Name, sender_name);
@@ -171,8 +171,8 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
                 y_l = real(H_i'/R_hat*(dz_il + H_i*Pose_i));
 
                 %% save
-                s_set(end+1,:) = {H_i'/R_hat*H_i};
-                y_set(end+1,:) = {H_i'/R_hat*(dz_il + H_i*Pose_i)};
+                s_set = {s_set; H_i'/R_hat*H_i};
+                y_set = {y_set; H_i'/R_hat*(dz_il + H_i*Pose_i)};
 
             end
             
@@ -181,16 +181,23 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
             
             inv_p_hat = 0;
             for i=1:height(s_set)
-                inv_p_hat = inv_p_hat + nu*s_set{i};
+                if isempty(s_set{i}(i))
+                else
+                    inv_p_hat = inv_p_hat + nu*s_set{i}{1};
+                end
             end
             
             x_hat = 0;
             for i=1:height(y_set)
-                x_hat = x_hat + nu*inv_p_hat\y_set{i};
+                if isempty(y_set{i})
+                else
+                    x_hat = x_hat + inv_p_hat\nu*y_set{i}{1};
+                end
+                 
             end
            
 
-            Omega = inv(obj.p_est);
+            Omega = 1/obj.p_est;
             q = obj.p_est\obj.Pose_est;
             
             alpha = 0.5; % value from (0,1) to minimize the resulting Trace(p_est) 
@@ -201,8 +208,8 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
             L = inv_p_hat - (1-alpha)*Gamma;
             
             %% Update
-            obj.p_est = real(inv(Omega + inv_p_hat - Gamma));
-            obj.Pose_est = real(obj.p_est*(K/Omega*q + L*x_hat));
+            obj.p_est = inv(Omega + inv_p_hat - Gamma);
+            obj.Pose_est = obj.p_est*(K/Omega*q + L*x_hat);
 
         end
 
