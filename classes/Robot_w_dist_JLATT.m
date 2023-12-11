@@ -27,7 +27,7 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
             syms xi yi thi;
             syms xl yl thl;
             
-            hil = [  sqrt(xl-xi^2+(yl-yi)^2);
+            hil = [  sqrt((xl-xi)^2+(yl-yi)^2);
                      atan2(yl-yi, xl- xi)-thi];
             
             dhil_xi = [ diff(hil,xi), diff(hil,yi), diff(hil,thi)];
@@ -186,23 +186,23 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
             
             x_hat = 0;
             for i=1:height(y_set)
-                x_hat = x_hat + nu*inv_p_hat\y_set{i};
+                x_hat = x_hat + nu*inv(inv_p_hat)*y_set{i};
             end
            
 
             Omega = inv(obj.p_est);
-            q = obj.p_est\obj.Pose_est;
+            q = inv(obj.p_est)*obj.Pose_est;
             
-            alpha = 0.5; % value from (0,1) to minimize the resulting Trace(p_est) 
+            alpha = 0.3; % value from (0,1) to minimize the resulting Trace(p_est) 
             
             temp = alpha*inv_p_hat + (1-alpha)*Omega;
-            Gamma = inv_p_hat/temp*Omega;
+            Gamma = inv_p_hat*inv(temp)*Omega;
             K = Omega - alpha*Gamma;
             L = inv_p_hat - (1-alpha)*Gamma;
             
             %% Update
             obj.p_est = real(inv(Omega + inv_p_hat - Gamma));
-            obj.Pose_est = real(obj.p_est*(K/Omega*q + L*x_hat));
+            obj.Pose_est = real(obj.p_est*(K*inv(Omega)*q + L*x_hat));
 
         end
 
