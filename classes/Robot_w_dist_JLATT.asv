@@ -174,7 +174,7 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
 
                 R_hat = obj.R_mes + H_l*p_l*H_l';
                 R_hat(R_hat < 0.1) = 0;
-                R_hat = R_hat + 0.01 * eye(size(R_hat));
+                R_hat = R_hat + 1e-3 * eye(size(R_hat));
 
                 %% corrections
                 s_l = H_i'*inv(R_hat)*H_i;
@@ -200,7 +200,7 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
                     inv_p_hat = inv_p_hat + nu*s_set{i};
                 end
                 inv_p_hat(inv_p_hat < 0.1) = 0;
-                inv_p_hat = inv_p_hat + 1e-3 * eye(size(inv_p_hat));
+                inv_p_hat = inv_p_hat + 1e-5 * eye(size(inv_p_hat));
 
                 p_hat = inv(inv_p_hat);
                 
@@ -224,17 +224,12 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
                 alpha = hat_contr/(hat_contr + est_contr+1e-5); % value from (0,1) to minimize the resulting Trace(p_est) 
                 
                 temp = alpha*inv_p_hat + (1-alpha)*Omega;
-                temp(temp < 0.1) = 0;
-                temp = temp + 1e-3 * eye(size(temp));
+                p_est(p_est < 0.1) = 0;
+                p_est = p_est + 1e-3 * eye(size(p_est));
 
                 Gamma = inv_p_hat*inv(temp)*Omega;
-                Gamma(Gamma < 1e-5) = 0;
-
                 K = Omega - alpha*Gamma;
-                K(K < 1e-5) = 0;
-
                 L = inv_p_hat - (1-alpha)*Gamma;
-                L(L < 1e-5) = 0;
                 
                 %% Update
                 obj.p_est = inv(Omega + inv_p_hat - Gamma);          

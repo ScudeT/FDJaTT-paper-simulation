@@ -13,6 +13,7 @@ classdef Robot
     methods
         function obj = Robot(x0)
             obj.true_Pose = double(x0);
+            obj.true_Pose(3) = wrapTo2Pi(obj.true_Pose(3));
             obj.true_Path = obj.true_Pose';
             obj.u = [0;0];
             obj.dt = 0;
@@ -27,6 +28,7 @@ classdef Robot
                     w           ]; 
             obj.dt = dt;
             obj.true_Pose = obj.true_Pose + vel*dt;
+            obj.true_Pose(3) = wrapTo2Pi(obj.true_Pose(3)); % always keep heading form -pi to pi
             obj.true_Path = [obj.true_Path; obj.true_Pose'];
         end
 
@@ -49,8 +51,8 @@ classdef Robot
             y = obj.true_Path(i,2);
             th = obj.true_Path(i,3);
 
-            verticesX = [0 1 0]*0.5;
-            verticesY = [-0.5 0 0.5]*0.5;
+            verticesX = [0 1 0]*0.1;
+            verticesY = [-0.5 0 0.5]*0.1;
 
             R = [cos(th) -sin(th); sin(th) cos(th)];
             rotatedVertices = R * [verticesX; verticesY];

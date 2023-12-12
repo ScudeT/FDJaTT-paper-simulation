@@ -62,18 +62,15 @@ classdef Robot_w_sensors < Robot
             x_i = obj.true_Pose(1);
             y_i = obj.true_Pose(2);
             th_i = obj.true_Pose(3);
-
-            x_l = robot.true_Pose(1);
-            y_l = robot.true_Pose(2);
-            th_l = robot.true_Pose(3);
-
+            
+            [x_l, y_l, th_l] = robot.true_Pose';
             dx = x_l-x_i;
             dy = y_l-y_i;
 
             dist = sqrt((dx)^2+(dy)^2) + obj.v_r*randn;
-            angle = wrapTo2Pi(atan2(dy,dx)) - th_i + obj.v_r*randn;
+            angle = atan2(dy,dx) - th_i + obj.v_r*randn;
             
-            measure = [dist; wrapTo2Pi(angle)];
+            measure = [dist; wrapToPi(angle);];
         end
 
         function obj = update_rel_meas(obj, robot_set, time_stamp)
