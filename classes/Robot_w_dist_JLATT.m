@@ -6,8 +6,6 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
         Pose_est
         p_est
         process_cov
-        dhil_Pose_i
-        dhil_Pose_l
         R_mes
     end
 
@@ -23,23 +21,6 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
 
             obj.process_cov = eye(2)*w_var;
             obj.R_mes = eye(2)*obj.v_r;
-            
-            syms xi yi thi;
-            syms xl yl thl;
-            
-            hil = [  sqrt((xl-xi)^2+(yl-yi)^2);
-                     atan2(yl-yi, xl- xi)-thi];
-            
-            dhil_xi = [ diff(hil,xi), diff(hil,yi), diff(hil,thi)];
-            dhil_xi = vpa(dhil_xi); % numeric approximation to ease calcolus
-            dhil_xl = [ diff(hil,xl), diff(hil,yl), diff(hil,thl)];
-            dhil_xl = vpa(dhil_xl); % numeric approximation to ease calcolus
-
-            dhil_Pose_i = matlabFunction(dhil_xi);
-            dhil_Pose_l = matlabFunction(dhil_xl);
-
-            obj.dhil_Pose_i = @(Pose_i,Pose_l) dhil_Pose_i(Pose_i(1),Pose_l(1),Pose_i(2),Pose_l(2));
-            obj.dhil_Pose_l = @(Pose_i,Pose_l) dhil_Pose_l(Pose_i(1),Pose_l(1),Pose_i(2),Pose_l(2));
             
         end
 
@@ -161,48 +142,67 @@ classdef Robot_w_dist_JLATT < Robot_w_sens_and_comm
                 dz_il(2) = mod(dz_il(2), 2*pi); % difference in measurements
                 
                 %% H matrices
-                H_i = obj.dhil_Pose_i(Pose_i,Pose_l);
-                H_l = obj.dhil_Pose_l(Pose_i,Pose_l);
+                dx = Pose_l(1) - Pose_i(1);
+                dy = Pose_l(2) - Pose_i(2);
+
+                H_i = [ -dx/sqrt(dx^2 + dy^2)   -dy/sqrt(dx^2 + dy^2)   0;
+                        -dy/(dx^2 + dy^2)       dx/(dx^2+dy^2)          -1];
+
+                H_l = [ dx/sqrt(dx^2 + dy^2)    dy/sqrt(dx^2 + dy^2)    0;
+                        dy/(dx^2 + dy^2)        -dx/(dx^2+dy^2)         0];
 
                 R_hat = obj.R_mes + H_l*p_l*H_l';
 
                 %% corrections
-                s_l = real(H_i'/R_hat*H_i);
-                y_l = real(H_i'/R_hat*(dz_il + H_i*Pose_i));
+                s_l = H_i'/R_hat*H_i;
+                y_l = H_i'/R_hat*(dz_il + H_i*Pose_i); !% relly high values for the y coordinate
+
+                s_l(s_l < 0.001) = 0;
+                y_l(y_l < 0.001) = 0;
 
                 %% save
-                s_set(end+1,:) = {H_i'/R_hat*H_i};
-                y_set(end+1,:) = {H_i'/R_hat*(dz_il + H_i*Pose_i)};
+                s_set(end+1,:) = {s_l};
+                y_set(end+1,:) = {y_l};
 
             end
             
-            %% Compute update terms
-            nu = 1/n_corrections; % I am only updating from relative measurements
-            
-            inv_p_hat = 0;
-            for i=1:height(s_set)
-                inv_p_hat = inv_p_hat + nu*s_set{i};
-            end
-            
-            x_hat = 0;
-            for i=1:height(y_set)
-                x_hat = x_hat + nu*inv(inv_p_hat)*y_set{i};
-            end
-           
+            if isempty(s_set)
+                % dont update if I dont have data
+            else
+                %% Compute update terms
+                nu = 1/n_corrections; % I am only updating from relative measurements
+                
+                inv_p_hat = 0;
+                for i=1:height(s_set)
+                    inv_p_hat = inv_p_hat + nu*s_set{i};
+                end
+                p_hat = inv(inv_p_hat);
+                
+                x_hat = 0;
+                for i=1:height(y_set)
+                    x_hat = x_hat + nu*inv_p_hat*y_set{i}; !% way too different from the estimated pose
+                end
+               
+    
+                Omega = inv(obj.p_est);
+                q = inv(obj.p_est)*obj.Pose_est;
+                
+                % update coeff
+                hat_contr = trace(p_hat)^-1;
+                est_contr = trace(obj.p_est)^-1;
+                alpha = hat_contr/(hat_contr + est_contr); % value from (0,1) to minimize the resulting Trace(p_est) 
+                
+                temp = alpha*inv_p_hat + (1-alpha)*Omega;
+                Gamma = inv_p_hat*inv(temp)*Omega;
+                K = Omega - alpha*Gamma;
+                L = inv_p_hat - (1-alpha)*Gamma;
+                
+                %% Update
+                obj.p_est = inv(Omega + inv_p_hat - Gamma);             % does get a bit smaler and could work
+                obj.Pose_est = obj.p_est*(K*inv(Omega)*q + L*x_hat);    % launches the robot to hyperspace
 
-            Omega = inv(obj.p_est);
-            q = inv(obj.p_est)*obj.Pose_est;
+            end
             
-            alpha = 0.3; % value from (0,1) to minimize the resulting Trace(p_est) 
-            
-            temp = alpha*inv_p_hat + (1-alpha)*Omega;
-            Gamma = inv_p_hat*inv(temp)*Omega;
-            K = Omega - alpha*Gamma;
-            L = inv_p_hat - (1-alpha)*Gamma;
-            
-            %% Update
-            obj.p_est = real(inv(Omega + inv_p_hat - Gamma));
-            obj.Pose_est = real(obj.p_est*(K*inv(Omega)*q + L*x_hat));
 
         end
 
