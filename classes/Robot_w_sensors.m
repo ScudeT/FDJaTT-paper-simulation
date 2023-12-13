@@ -21,10 +21,10 @@ classdef Robot_w_sensors < Robot
     end
 
     methods
-        function obj = Robot_w_sensors(x0,name,sensor_data)
+        function obj = Robot_w_sensors(x0,name,stat_data,sensor_data)
             % variances = [v_abs; v_r; v_t]
             % max_distances = [max_z_r; max_z_t]
-            obj@Robot(x0);
+            obj@Robot(x0,stat_data);
             
             variances = sensor_data{1};
             max_distances = sensor_data{2};
@@ -92,6 +92,32 @@ classdef Robot_w_sensors < Robot
                     % if the robot is reachable then save it 
                     if rand < obj.rel_mes_prob
                         newRow = table( current_robot.name, measure(1),measure(2), time_stamp, 'VariableNames', {'Name', 'Distance','Direction','Time'});
+                        obj.z_r = [obj.z_r; newRow];
+                    end
+                end
+      
+            end
+        end
+
+        function obj = simple_rel_meas(obj, robot_set, time_stamp)
+            % the robot measurement table is reset with the new values of
+            % the measurements 
+            
+            obj.z_r = table('Size', [0 5], 'VariableTypes', {'double','double','double','double','double'}, 'VariableNames', {'Name','Distance', 'dX','dY','Time'});
+
+            for j=1:length(robot_set)
+                current_robot = robot_set(j);
+                measure = obj.rel_sensor_model(current_robot);
+               
+                
+                if current_robot.name == obj.name 
+                    % don't add measurement against your own
+                elseif measure(1) < obj.z_r_max 
+                    % if the robot is reachable then save it 
+                    if rand < obj.rel_mes_prob
+                        dX = current_robot.true_Pose - obj.true_Pose;
+
+                        newRow = table( current_robot.name,measure(1), dX(1), dX(2), time_stamp, 'VariableNames', {'Name','Distance', 'dX','dY','Time'});
                         obj.z_r = [obj.z_r; newRow];
                     end
                 end
